@@ -360,7 +360,7 @@ export default function FounderPage() {
 
         {/* Content */}
         <div className="relative z-10 h-full max-w-[1400px] mx-auto px-8">
-          <div className="h-full grid lg:grid-cols-12 gap-8 items-start lg:items-center pt-4 sm:pt-14 lg:pt-28">
+          <div className="h-full grid lg:grid-cols-12 gap-8 items-start lg:items-center pt-24 sm:pt-28 lg:pt-28">
 
             {/* LEFT SIDE - Shifted Right */}
             <motion.div
