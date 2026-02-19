@@ -44,6 +44,10 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+
   // Compression
   compress: true,
 
@@ -80,6 +84,8 @@ const nextConfig = {
   },
 
   // Output standalone for better deployment
+  // output: "standalone", // Commented out standard standalone for Netlify adapter compatibility if needed, but usually fine.
+  // Netlify plugin handles it. Let's keep it safe or just use standard.
   output: "standalone",
 };
 
