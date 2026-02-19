@@ -40,12 +40,9 @@ const nextConfig = {
     // optimizePackageImports: ['lucide-react'],
   },
 
-  // Ignore TypeScript and ESLint errors during build to allow deployment
+  // Ignore TypeScript errors during build to allow deployment
   typescript: {
     ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
   },
 
   // Compression
