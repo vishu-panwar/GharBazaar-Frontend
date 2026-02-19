@@ -354,7 +354,7 @@ export default function PricingPage() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0, ease: [0.16, 1, 0.3, 1] }}
-              className="lg:col-span-8 space-y-4 sm:space-y-5 lg:pl-12 xl:pl-16 -mt-[30px] lg:mt-0"
+              className="lg:col-span-8 space-y-4 sm:space-y-5 lg:pl-12 xl:pl-16 -mt-[100px] lg:mt-0"
             >
 
               <motion.div
