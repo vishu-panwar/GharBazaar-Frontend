@@ -1,0 +1,76 @@
+﻿git : remote: warning: 
+File .next/dev/cache/tu
+rbopack/23c46498/000035
+12.sst is 86.63 MB; 
+this is larger than 
+GitHub's recommended 
+maximum file size of 
+50.00 MB        
+At line:1 char:1
++ git push origin main 
+--force > push_log.txt 
+2>&1; type push_log.txt
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (remote: warni   
+ ng...0.00 MB          
+  :String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+remote: warning: File .
+next/dev/cache/turbopac
+k/23c46498/00003514.sst
+ is 58.50 MB; this is 
+larger than GitHub's 
+recommended maximum 
+file size of 50.00 MB  
+      
+remote: warning: File .
+next/dev/cache/turbopac
+k/23c46498/00003515.sst
+ is 59.35 MB; this is 
+larger than GitHub's 
+recommended maximum 
+file size of 50.00 MB  
+      
+remote: error: Trace: 6
+4d87e8f1b69b4898bc25a26
+e011ccdd403fc85437d5456
+7542d1be57bc18bc1      
+  
+remote: error: See 
+https://gh.io/lfs for 
+more information.      
+  
+remote: error: File nod
+e_modules/@next/swc-win
+32-x64-msvc/next-swc.wi
+n32-x64-msvc.node is 
+122.06 MB; this 
+exceeds GitHub's file 
+size limit of 100.00 
+MB        
+remote: error: GH001: 
+Large files detected. 
+You may want to try 
+Git Large File Storage 
+- https://git-lfs.githu
+b.com.        
+To https://github.com/a
+dityaprajapati-0/GharBa
+zaar-Frontend
+ ! [remote rejected]   
+main -> main 
+(pre-receive hook 
+declined)
+error: failed to push 
+some refs to 'https://g
+ithub.com/adityaprajapa
+ti-0/GharBazaar-Fronten
+d'
