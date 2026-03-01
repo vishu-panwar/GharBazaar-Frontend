@@ -19,7 +19,8 @@ import {
   Moon,
   Monitor,
   ShieldCheck,
-  MapPin
+  MapPin,
+  Shield
 } from 'lucide-react'
 import NotificationDropdown from '@/components/NotificationDropdown'
 import { AuthUtils } from '@/lib/firebase'
@@ -82,8 +83,7 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
   }, [router, pathname, isPublicPage])
 
   const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
+    AuthUtils.clearCache()
     router.push('/')
   }
 
@@ -125,6 +125,8 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
     { name: 'Dashboard', href: '/employee', icon: LayoutDashboard },
     { name: 'KYC Verification', href: '/employee/kyc', icon: ShieldCheck },
     { name: 'Property Verification', href: '/employee/verification', icon: Users },
+    { name: 'Listing Control Centre', href: '/employee/listing-control', icon: Shield },
+    { name: 'Manage Inventory', href: '/employee/properties', icon: FileCheck },
     { name: 'Support Tickets', href: '/employee/support', icon: MessageSquare },
     { name: 'Issues & Reports', href: '/employee/issues', icon: AlertCircle },
     { name: 'Lead Management', href: '/employee/leads', icon: Phone },

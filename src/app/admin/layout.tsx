@@ -18,9 +18,11 @@ import {
   Search,
   Megaphone,
   Shield,
-  MapPin
+  MapPin,
+  Wallet
 } from 'lucide-react'
 import NotificationDropdown from '@/components/NotificationDropdown'
+import { AuthUtils } from '@/lib/firebase'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -38,47 +40,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       return
     }
 
-    // PRIORITY 1: Check for demo mode FIRST
-    const demoMode = localStorage.getItem('demo_mode');
-    const demoUserStr = localStorage.getItem('demo_user');
-
-    if (demoMode === 'true' && demoUserStr) {
-      try {
-        const demoUser = JSON.parse(demoUserStr);
-        console.log('Admin Layout: Demo mode active, user:', demoUser);
-
-        // Check if demo user is admin
-        if (demoUser.role !== 'admin') {
-          console.log('Admin Layout: Demo user is not admin, redirecting to dashboard');
-          router.push('/dashboard');
-          return;
-        }
-
-        // Create mock admin user for demo
-        const mockUser = {
-          name: demoUser.displayName,
-          email: demoUser.email,
-          uid: demoUser.uid,
-          role: 'admin',
-        };
-
-        setUser(mockUser);
-        return; // Exit early, don't check normal user
-      } catch (e) {
-        console.error('Admin Layout: Error parsing demo user:', e);
-      }
-    }
-
-    // PRIORITY 2: Check for normal user
-    const userData = localStorage.getItem('user')
+    const userData = AuthUtils.getCachedUser()
     if (userData) {
-      const parsed = JSON.parse(userData)
-      // Check if user is admin
-      if (parsed.role !== 'admin') {
+      const role = (userData.role || '').toLowerCase()
+      if (role !== 'admin') {
         router.push('/dashboard')
         return
       }
-      setUser(parsed)
+      setUser(userData)
     } else {
       router.push('/admin/login')
     }
@@ -90,8 +59,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
+    AuthUtils.clearCache()
     router.push('/')
   }
 
@@ -101,6 +69,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Listings', href: '/admin/listings', icon: Home },
     { name: 'Employees', href: '/admin/employees', icon: UserCog },
     { name: 'Salary', href: '/admin/salary', icon: DollarSign },
+    { name: 'Partner Payouts', href: '/admin/payouts', icon: Wallet },
     { name: 'Payments', href: '/admin/payments', icon: CreditCard },
     { name: 'Subscriptions', href: '/admin/subscriptions', icon: CreditCard },
     { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
