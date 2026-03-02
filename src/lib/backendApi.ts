@@ -1582,41 +1582,17 @@ export const backendApi = {
                 }
             }
 
-            // Direct call to external Koyeb API
-            // Explicitly hit the Koyeb API as requested by the user
-            const url = 'https://strict-matty-gharbazaar1-60d0c804.koyeb.app/api/forms';
-
-            const response = await fetch(url, {
+            // Use internal backendApiCall to hit our own backend
+            return backendApiCall('/forms', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
                 body: JSON.stringify({
                     name: data.name,
                     email: data.email,
                     subject: data.subject,
                     message: data.message,
                     phone: formattedPhone
-                }),
-                mode: 'cors'
+                })
             });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => null);
-                if (errorData) {
-                    if (typeof errorData === 'object') {
-                        const messages = Object.entries(errorData)
-                            .map(([field, msg]) => `${field}: ${msg}`)
-                            .join('\n');
-                        throw new Error(messages || JSON.stringify(errorData));
-                    }
-                    throw new Error(String(errorData));
-                }
-                throw new Error(`API Error ${response.status}`);
-            }
-
-            return await response.json();
         },
     },
     
