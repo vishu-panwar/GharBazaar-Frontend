@@ -280,7 +280,8 @@ export const backendApi = {
          * Backend API endpoint: POST /api/v1/auth/google?code=xxx
          */
         googleLogin: async (authCode: string, role?: string) => {
-            let url = `/auth/google?code=${encodeURIComponent(authCode)}`;
+            const redirectUri = typeof window !== 'undefined' ? `${window.location.origin}/auth/google/callback` : '';
+            let url = `/auth/google?code=${encodeURIComponent(authCode)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
             if (role) {
                 url += `&role=${encodeURIComponent(role)}`;
             }
