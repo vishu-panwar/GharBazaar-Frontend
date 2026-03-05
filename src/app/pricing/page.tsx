@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, Fragment } from 'react'
+import { useRouter } from 'next/navigation'
+import { loadRazorpayScript } from '@/lib/razorpay'
 import Link from 'next/link'
 import InteractiveBackground from '@/components/InteractiveBackground'
 import PricingBackground from '@/components/backgrounds/PricingBackground'
@@ -46,6 +48,104 @@ import {
 
 export default function PricingPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
+  const [payingPlan, setPayingPlan] = useState<{ name: string; price: number } | null>(null)
+  const router = useRouter()
+
+  const handleBuyPlan = async (planName: string, price: number) => {
+    // Check if user is logged in
+    const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+    if (!token) {
+      router.push(`/login?redirect=/pricing`)
+      return
+    }
+
+    try {
+      setPayingPlan({ name: planName, price })
+
+      const isLoaded = await loadRazorpayScript()
+      if (!isLoaded) {
+        alert('Failed to load Razorpay. Check your internet connection.')
+        setPayingPlan(null)
+        return
+      }
+
+      const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
+      if (!razorpayKey) {
+        alert('Payment is not configured. Please contact support.')
+        setPayingPlan(null)
+        return
+      }
+
+      // Create backend order
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1'
+      const orderRes = await fetch(`${apiUrl}/payments/create`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: price,
+          currency: 'INR',
+          metadata: { serviceName: planName },
+        }),
+      })
+      const orderData = await orderRes.json()
+
+      let razorpayOrderId = orderData?.data?.orderId
+      // If backend fails, proceed without order_id (Razorpay will still work)
+      if (!orderRes.ok) {
+        console.warn('Backend order creation failed, proceeding without order_id')
+        razorpayOrderId = undefined
+      }
+
+      const rzp = new window.Razorpay({
+        key: razorpayKey,
+        amount: price * 100,
+        currency: 'INR',
+        name: 'GharBazaar',
+        description: planName,
+        image: '/logo.jpeg',
+        order_id: razorpayOrderId,
+        prefill: {},
+        theme: { color: '#14b8a6' },
+        handler: async (response: { razorpay_payment_id: string; razorpay_order_id?: string; razorpay_signature?: string }) => {
+          // Verify the payment on backend
+          try {
+            if (razorpayOrderId && response.razorpay_order_id && response.razorpay_signature) {
+              await fetch(`${apiUrl}/payments/verify`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  orderId: response.razorpay_order_id,
+                  paymentId: response.razorpay_payment_id,
+                  signature: response.razorpay_signature,
+                }),
+              })
+            }
+          } catch (e) {
+            console.error('Verification failed:', e)
+          }
+          setPayingPlan(null)
+          alert(`Payment successful! ₹${price.toLocaleString('en-IN')} paid for ${planName}. Your plan is being activated.`)
+          router.push('/dashboard')
+        },
+        modal: {
+          ondismiss: () => setPayingPlan(null),
+          confirm_close: true,
+        },
+      })
+      rzp.on('payment.failed', () => {
+        setPayingPlan(null)
+        alert('Payment failed. Please try again.')
+      })
+      rzp.open()
+    } catch (err) {
+      console.error('Payment error:', err)
+      setPayingPlan(null)
+      alert('Something went wrong. Please try again.')
+    }
+  }
 
   // Buyer Access Plans
   const buyerPlans = [
@@ -487,12 +587,12 @@ export default function PricingPage() {
                   ))}
                 </ul>
 
-                <Link
-                  href="/login"
+                <button
+                  onClick={() => handleBuyPlan(plan.name, plan.price)}
                   className={`block w-full text-center ${getColorClasses(plan.color).button} text-white py-4 rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl`}
                 >
-                  Start {plan.name.split(' ')[0]} Plan
-                </Link>
+                  {payingPlan?.name === plan.name ? 'Opening Payment...' : `Start ${plan.name.split(' ')[0]} Plan`}
+                </button>
               </div>
             ))}
           </div>
@@ -565,12 +665,12 @@ export default function PricingPage() {
                   ))}
                 </ul>
 
-                <Link
-                  href="/login"
+                <button
+                  onClick={() => handleBuyPlan(plan.name, plan.price)}
                   className={`block w-full text-center ${getColorClasses(plan.color).button} text-white py-4 rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl`}
                 >
-                  List Your Property
-                </Link>
+                  {payingPlan?.name === plan.name ? 'Opening Payment...' : 'List Your Property'}
+                </button>
               </div>
             ))}
           </div>
@@ -645,13 +745,14 @@ export default function PricingPage() {
                   ))}
                 </ul>
 
-                <Link
-                  href="/login"
+                <button
+                  onClick={() => handleBuyPlan(service.name, service.price)}
                   className={`block w-full text-center ${getColorClasses(service.color).button} text-white py-4 rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl`}
                 >
-                  {service.id === 'property-marketing' ? 'Get Marketing Package' :
+                  {payingPlan?.name === service.name ? 'Opening Payment...' :
+                    service.id === 'property-marketing' ? 'Get Marketing Package' :
                     service.id === 'due-diligence' ? 'Get Due Diligence' : 'Get Full Service'}
-                </Link>
+                </button>
               </div>
             ))}
           </div>
@@ -812,17 +913,17 @@ export default function PricingPage() {
                         </div>
 
                         {/* CTA Button */}
-                        <Link
-                          href="/login"
-                          className="group w-full bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-700 hover:via-indigo-700 hover:to-blue-700 text-white py-6 rounded-2xl font-bold text-xl transition-all duration-500 shadow-2xl hover:shadow-3xl transform hover:scale-[1.02] relative overflow-hidden block text-center"
+                        <button
+                          onClick={() => handleBuyPlan('GharBazaar Managed Seller Plan', 1999)}
+                          className="group w-full bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-700 hover:via-indigo-700 hover:to-blue-700 text-white py-6 rounded-2xl font-bold text-xl transition-all duration-500 shadow-2xl hover:shadow-3xl transform hover:scale-[1.02] relative overflow-hidden text-center"
                         >
                           <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                           <div className="relative flex items-center justify-center space-x-3">
                             <Award className="w-6 h-6" />
-                            <span>Get Qualified Sellers</span>
+                            <span>{payingPlan?.name === 'GharBazaar Managed Seller Plan' ? 'Opening Payment...' : 'Get Qualified Sellers'}</span>
                             <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform duration-300" />
                           </div>
-                        </Link>
+                        </button>
                       </div>
 
                       {/* Right: Features Grid (3 columns) */}
@@ -1016,17 +1117,17 @@ export default function PricingPage() {
                         </div>
 
                         {/* CTA Button */}
-                        <Link
-                          href="/login"
-                          className="group w-full bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 hover:from-green-700 hover:via-emerald-700 hover:to-teal-700 text-white py-6 rounded-2xl font-bold text-xl transition-all duration-500 shadow-2xl hover:shadow-3xl transform hover:scale-[1.02] relative overflow-hidden block text-center"
+                        <button
+                          onClick={() => handleBuyPlan('GharBazaar Managed Buyer Plan', 1999)}
+                          className="group w-full bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 hover:from-green-700 hover:via-emerald-700 hover:to-teal-700 text-white py-6 rounded-2xl font-bold text-xl transition-all duration-500 shadow-2xl hover:shadow-3xl transform hover:scale-[1.02] relative overflow-hidden text-center"
                         >
                           <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                           <div className="relative flex items-center justify-center space-x-3">
                             <Target className="w-6 h-6" />
-                            <span>Get Qualified Buyers</span>
+                            <span>{payingPlan?.name === 'GharBazaar Managed Buyer Plan' ? 'Opening Payment...' : 'Get Qualified Buyers'}</span>
                             <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform duration-300" />
                           </div>
-                        </Link>
+                        </button>
                       </div>
 
                       {/* Right: Features Grid (3 columns) */}

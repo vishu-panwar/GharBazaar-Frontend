@@ -25,9 +25,8 @@ import {
   Info,
   Tag
 } from 'lucide-react'
-import { initiateRazorpayPayment, PaymentData } from '@/lib/razorpay'
 import QRCodeGenerator from '@/components/ui/QRCodeGenerator'
-import { processPaymentAPI, sendPaymentConfirmationAPI } from '@/lib/payment-api'
+import { loadRazorpayScript } from '@/lib/razorpay'
 import { backendApi } from '@/lib/backendApi'
 
 interface PaymentFormProps {
@@ -279,266 +278,142 @@ export default function PaymentForm({
         return
       }
 
-      // Validate email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
       if (!emailRegex.test(userDetails.email)) {
         onPaymentError('Please enter a valid email address')
         return
       }
 
-      // Validate phone format (Indian mobile number)
-      const phoneRegex = /^[6-9]\d{9}$/
       const cleanPhone = userDetails.phone.replace(/\D/g, '')
-      if (!phoneRegex.test(cleanPhone)) {
-        onPaymentError('Please enter a valid Indian mobile number')
+      if (cleanPhone.length !== 10) {
+        onPaymentError('Please enter a valid 10-digit Indian mobile number')
         return
-      }
-
-      // Payment method specific validation
-      if (selectedMethod === 'card') {
-        if (!validateCardNumber(cardData.number)) {
-          onPaymentError('Please enter a valid card number')
-          return
-        }
-        if (!validateExpiry(cardData.expiry)) {
-          onPaymentError('Please enter a valid expiry date')
-          return
-        }
-        if (cardData.cvv.length < 3) {
-          onPaymentError('Please enter a valid CVV')
-          return
-        }
-        if (cardData.name.trim().length < 2) {
-          onPaymentError('Please enter the cardholder name')
-          return
-        }
-      } else if (selectedMethod === 'upi') {
-        if (!validateUPI(upiId)) {
-          onPaymentError('Please enter a valid UPI ID')
-          return
-        }
-      } else if (selectedMethod === 'netbanking') {
-        if (!selectedBank) {
-          onPaymentError('Please select your bank')
-          return
-        }
-      } else if (selectedMethod === 'wallet') {
-        if (!selectedWallet) {
-          onPaymentError('Please select a wallet')
-          return
-        }
       }
 
       setProcessingPayment(true)
 
-      console.log('🚀 Starting payment process...', {
-        method: selectedMethod,
-        amount: amount,
-        user: userDetails.name
-      })
+      // Step 1: Load the Razorpay script
+      const isLoaded = await loadRazorpayScript()
+      if (!isLoaded) {
+        throw new Error('Failed to load Razorpay SDK. Check your internet connection.')
+      }
 
-      // Create payment order first
-      console.log('📝 Creating payment order...')
-      const orderResponse = await backendApi.payments.createOrder(
-        amount,
-        selectedMethod,
-        {
-          service: serviceName,
-          customer: userDetails.name,
-          email: userDetails.email,
-          phone: userDetails.phone,
-          method: selectedMethod
+      const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
+      if (!razorpayKey) {
+        throw new Error('Razorpay key not configured. Please contact support.')
+      }
+
+      // Step 2: Create an order on the backend
+      console.log('📝 Creating Razorpay order on backend...')
+      const token = typeof window !== 'undefined' ? (localStorage.getItem('auth_token') || '') : ''
+      const orderRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || '/api/v1'}/payments/create`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount,
+          currency: 'INR',
+          metadata: {
+            serviceName,
+            customerEmail: userDetails.email,
+            customerName: userDetails.name,
+          },
+        }),
+      })
+      const orderData = await orderRes.json()
+      if (!orderRes.ok || !orderData.success) {
+        throw new Error(orderData.message || 'Failed to create payment order')
+      }
+      const razorpayOrderId = orderData.data?.orderId
+      console.log('✅ Backend order created:', razorpayOrderId)
+
+      // Step 3: Open the real Razorpay checkout modal (handles all payment methods natively)
+      await new Promise<void>((resolve, reject) => {
+        const options = {
+          key: razorpayKey,
+          amount: amount * 100, // in paise
+          currency: 'INR',
+          name: 'GharBazaar',
+          description: serviceName,
+          image: '/logo.jpeg',
+          order_id: razorpayOrderId,
+          prefill: {
+            name: userDetails.name,
+            email: userDetails.email,
+            contact: cleanPhone,
+          },
+          theme: { color: '#14b8a6' },
+          config: { display: { language: 'en' } },
+          handler: async (response: {
+            razorpay_payment_id: string
+            razorpay_order_id: string
+            razorpay_signature: string
+          }) => {
+            try {
+              console.log('💰 Payment captured by Razorpay, verifying...')
+              // Step 4: Verify signature on backend
+              const verifyRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || '/api/v1'}/payments/verify`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  orderId: response.razorpay_order_id,
+                  paymentId: response.razorpay_payment_id,
+                  signature: response.razorpay_signature,
+                }),
+              })
+              const verifyData = await verifyRes.json()
+              if (!verifyRes.ok || !verifyData.success) {
+                reject(new Error(verifyData.message || 'Payment verification failed'))
+                return
+              }
+              console.log('✅ Payment verified!')
+              onPaymentSuccess({
+                transactionId: response.razorpay_payment_id,
+                paymentId: response.razorpay_payment_id,
+                orderId: response.razorpay_order_id,
+                signature: response.razorpay_signature,
+                amount,
+                status: 'success',
+                timestamp: new Date().toISOString(),
+                userDetails,
+              })
+              resolve()
+            } catch (err) {
+              reject(err)
+            }
+          },
+          modal: {
+            ondismiss: () => {
+              console.log('Razorpay modal dismissed by user')
+              onPaymentError('Payment cancelled')
+              resolve() // resolve so processPayment doesn't stay in loading
+            },
+            confirm_close: true,
+            animation: true,
+          },
         }
-      )
 
-      if (!orderResponse.success) {
-        throw new Error(orderResponse.error || 'Failed to create payment order')
-      }
-
-      const orderId = orderResponse?.data?.orderId || orderResponse?.orderId
-      if (!orderId) {
-        throw new Error('Payment order id not returned by server')
-      }
-
-      const orderData = {
-        id: orderId,
-        amount: amount * 100,
-        currency: 'INR'
-      }
-
-      console.log('✅ Order created successfully:', orderData.id)
-
-      // Process payment based on selected method
-      console.log(`💳 Processing ${selectedMethod.toUpperCase()} payment...`)
-      let paymentResult
-
-      switch (selectedMethod) {
-        case 'upi':
-          paymentResult = await processUPIPayment(orderData, upiId)
-          break
-        case 'card':
-          paymentResult = await processCardPayment(orderData, cardData)
-          break
-        case 'netbanking':
-          paymentResult = await processNetBankingPayment(orderData, selectedBank)
-          break
-        case 'wallet':
-          paymentResult = await processWalletPayment(orderData, selectedWallet)
-          break
-        case 'qr':
-          paymentResult = await processQRPayment(orderData)
-          break
-        default:
-          throw new Error('Invalid payment method selected')
-      }
-
-      console.log('💰 Payment processed:', paymentResult.paymentId)
-
-      // Verify payment on backend
-      console.log('🔍 Verifying payment...')
-      const verificationData = await backendApi.payments.verify({
-        orderId: paymentResult.orderId,
-        paymentId: paymentResult.paymentId,
-        signature: paymentResult.signature
-      })
-
-      if (!verificationData.success) {
-        throw new Error(verificationData.error || 'Payment verification failed')
-      }
-
-      console.log('✅ Payment verified:', verificationData)
-
-      if (verificationData.success) {
-        // Payment successful
-        console.log('🎉 Payment completed successfully!')
-        onPaymentSuccess({
-          transactionId: paymentResult.paymentId,
-          orderId: paymentResult.orderId,
-          signature: paymentResult.signature,
-          method: selectedMethod,
-          amount: amount,
-          status: 'success',
-          timestamp: new Date().toISOString(),
-          userDetails: userDetails
+        const rzp = new window.Razorpay(options)
+        rzp.on('payment.failed', (resp: any) => {
+          const msg = resp?.error?.description || resp?.error?.reason || 'Payment failed'
+          console.error('Razorpay payment.failed:', resp.error)
+          reject(new Error(msg))
         })
-      } else {
-        throw new Error('Payment verification failed')
-      }
+        rzp.open()
+      })
 
     } catch (error) {
-      console.error('❌ Payment processing error:', error)
+      console.error('❌ Payment error:', error)
       const errorMessage = error instanceof Error ? error.message : 'Payment processing failed'
-      onPaymentError(`Payment failed: ${errorMessage}`)
+      onPaymentError(errorMessage)
     } finally {
       setProcessingPayment(false)
     }
-  }
-
-  // Custom payment processing functions for each method
-  const processUPIPayment = async (orderData: any, upiId: string) => {
-    console.log('🔄 Processing UPI payment for:', upiId)
-
-    // Simulate UPI payment processing with realistic delay
-    await new Promise(resolve => setTimeout(resolve, 2000))
-
-    // In real implementation, this would integrate with UPI APIs
-    const paymentId = 'pay_upi_' + Date.now() + Math.random().toString(36).substring(2, 8)
-    const signature = generateSignature(orderData.id, paymentId)
-
-    console.log('✅ UPI payment processed successfully')
-
-    return {
-      paymentId,
-      orderId: orderData.id,
-      signature,
-      method: 'upi',
-      upiId
-    }
-  }
-
-  const processCardPayment = async (orderData: any, cardData: any) => {
-    console.log('💳 Processing card payment for:', cardData.number.slice(-4))
-
-    // Simulate card payment processing with realistic delay
-    await new Promise(resolve => setTimeout(resolve, 3000))
-
-    // In real implementation, this would integrate with card processing APIs
-    const paymentId = 'pay_card_' + Date.now() + Math.random().toString(36).substring(2, 8)
-    const signature = generateSignature(orderData.id, paymentId)
-
-    console.log('✅ Card payment processed successfully')
-
-    return {
-      paymentId,
-      orderId: orderData.id,
-      signature,
-      method: 'card',
-      cardLast4: cardData.number.slice(-4)
-    }
-  }
-
-  const processNetBankingPayment = async (orderData: any, bankName: string) => {
-    console.log('🏦 Processing net banking payment for:', bankName)
-
-    // Simulate net banking payment processing with realistic delay
-    await new Promise(resolve => setTimeout(resolve, 4000))
-
-    const paymentId = 'pay_nb_' + Date.now() + Math.random().toString(36).substring(2, 8)
-    const signature = generateSignature(orderData.id, paymentId)
-
-    console.log('✅ Net banking payment processed successfully')
-
-    return {
-      paymentId,
-      orderId: orderData.id,
-      signature,
-      method: 'netbanking',
-      bank: bankName
-    }
-  }
-
-  const processWalletPayment = async (orderData: any, walletName: string) => {
-    console.log('📱 Processing wallet payment for:', walletName)
-
-    // Simulate wallet payment processing with realistic delay
-    await new Promise(resolve => setTimeout(resolve, 2000))
-
-    const paymentId = 'pay_wallet_' + Date.now() + Math.random().toString(36).substring(2, 8)
-    const signature = generateSignature(orderData.id, paymentId)
-
-    console.log('✅ Wallet payment processed successfully')
-
-    return {
-      paymentId,
-      orderId: orderData.id,
-      signature,
-      method: 'wallet',
-      wallet: walletName
-    }
-  }
-
-  const processQRPayment = async (orderData: any) => {
-    console.log('📱 Processing QR payment...')
-
-    // Simulate QR payment processing with realistic delay
-    await new Promise(resolve => setTimeout(resolve, 2500))
-
-    const paymentId = 'pay_qr_' + Date.now() + Math.random().toString(36).substring(2, 8)
-    const signature = generateSignature(orderData.id, paymentId)
-
-    console.log('✅ QR payment processed successfully')
-
-    return {
-      paymentId,
-      orderId: orderData.id,
-      signature,
-      method: 'qr'
-    }
-  }
-
-  const generateSignature = (orderId: string, paymentId: string) => {
-    // In real implementation, this would be done on backend with your Razorpay secret
-    return 'sig_' + btoa(orderId + '|' + paymentId).substring(0, 20)
   }
 
   const isFormValid = () => {
