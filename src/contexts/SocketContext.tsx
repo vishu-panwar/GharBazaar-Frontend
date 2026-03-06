@@ -104,7 +104,10 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
             setSocket(newSocket);
             setConnected(newSocket.connected);
         } catch (error) {
-            console.error('Failed to initialize socket:', error);
+            console.error('CRITICAL: Failed to initialize socket connection:', error);
+            // Non-blocking failure: App will still render, but real-time features will be disabled.
+            setSocket(null);
+            setConnected(false);
         }
 
         return () => {
