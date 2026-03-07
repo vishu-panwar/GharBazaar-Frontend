@@ -10,18 +10,11 @@ const nextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "**.amazonaws.com",
-      },
-      {
-        protocol: "https",
-        hostname: "**.googleapis.com",
-      },
-      {
-        protocol: "http",
-        hostname: "localhost",
-      },
+      { protocol: "https", hostname: "**.amazonaws.com" },
+      { protocol: "https", hostname: "**.googleapis.com" },
+      { protocol: "https", hostname: "res.cloudinary.com" },
+      { protocol: "https", hostname: "**.cloudinary.com" },
+      { protocol: "http", hostname: "localhost" },
     ],
   },
 
@@ -30,14 +23,6 @@ const nextConfig = {
     NEXT_PUBLIC_GOOGLE_MAPS_API_KEY:
       process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
   },
-
-  // Performance optimizations
-  compiler: {
-    removeConsole: process.env.NODE_ENV === "production",
-  },
-
-  // Experimental features
-  experimental: {},
 
   // Ignore TypeScript and ESLint errors during build
   typescript: {
@@ -50,7 +35,7 @@ const nextConfig = {
   // Compression
   compress: true,
 
-  // Webpack alias for @ path resolution (explicit for Hostinger compatibility)
+  // Webpack alias for @ path resolution
   webpack: (config) => {
     config.resolve.alias = {
       ...config.resolve.alias,
@@ -59,7 +44,7 @@ const nextConfig = {
     return config;
   },
 
-  // Headers for better caching and security
+  // Headers for caching and security
   async headers() {
     return [
       {
@@ -74,24 +59,13 @@ const nextConfig = {
       {
         source: "/(.*)",
         headers: [
-          {
-            key: "X-Frame-Options",
-            value: "DENY",
-          },
-          {
-            key: "X-Content-Type-Options",
-            value: "nosniff",
-          },
-          {
-            key: "Referrer-Policy",
-            value: "origin-when-cross-origin",
-          },
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "origin-when-cross-origin" },
         ],
       },
     ];
   },
-
-  output: "standalone",
 };
 
 module.exports = nextConfig;

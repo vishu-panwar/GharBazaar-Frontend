@@ -7,6 +7,10 @@ import { Suspense } from 'react'
 import LoadingScreen from '@/components/LoadingScreen'
 import PWARegister from '@/components/PWARegister'
 
+// Force all pages to be server-rendered dynamically.
+// This prevents build-time "useContext outside provider" errors on Hostinger.
+export const dynamic = 'force-dynamic'
+
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const manrope = Manrope({ subsets: ['latin'], variable: '--font-manrope' })
 
