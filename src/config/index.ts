@@ -12,20 +12,27 @@
  * Consider removing API calls that depend on this configuration.
  */
 export const API_CONFIG = {
-    // Base URL for backend API
-    BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api',
+    // Base URL for backend API — strip trailing slash and any /v1 suffix
+    // so that FULL_URL always resolves to exactly .../api/v1 (no double /v1)
+    get BASE_URL() {
+        const raw = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api').trim().replace(/\/+$/, '');
+        // If already ends with /api/v1 or /api/v1/, return without the /v1 so FULL_URL adds it back
+        return raw.replace(/\/api\/v1$/i, '/api').replace(/\/v1$/i, '');
+    },
 
     // API version path
     VERSION: '/v1',
 
-    // Full API base URL
+    // Full API base URL → always https://api.gharbazaar.in/api/v1
     get FULL_URL() {
         return `${this.BASE_URL}${this.VERSION}`
     },
 
-    // Socket.io server URL (removes /api/v1 from base URL)
+    // Socket.io server URL (strip /api from base URL)
     get SOCKET_URL() {
-        return this.BASE_URL.replace('/api/v1', '')
+        const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL;
+        if (socketUrl) return socketUrl.trim().replace(/\/+$/, '');
+        return this.BASE_URL.replace(/\/api$/i, '');
     },
 
     // Request timeout (milliseconds)

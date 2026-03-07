@@ -59,17 +59,17 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     const handleSocketError = useCallback((error: any) => {
         console.error('Socket error:', error);
     }, []);
-
     const handleForceLogout = useCallback((data: { userId: string }) => {
         if (currentUserIdRef.current && data.userId === currentUserIdRef.current) {
             console.warn('Force logout triggered by admin');
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('user');
-            localStorage.removeItem('cached_user');
-            window.location.href = '/login?reason=deleted';
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user');
+                localStorage.removeItem('cached_user');
+                window.location.href = '/login?reason=deleted';
+            }
         }
     }, []);
-
     useEffect(() => {
         if (!user) {
             disconnectSocket();
