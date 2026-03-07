@@ -280,7 +280,12 @@ export const backendApi = {
          * Backend API endpoint: POST /api/v1/auth/google?code=xxx
          */
         googleLogin: async (authCode: string, role?: string) => {
-            const redirectUri = typeof window !== 'undefined' ? `${window.location.origin}/auth/google/callback` : '';
+            const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '');
+            const redirectUri = typeof window !== 'undefined'
+                ? (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && appUrl
+                    ? `${appUrl}/auth/google/callback`
+                    : `${window.location.origin}/auth/google/callback`)
+                : '';
             let url = `/auth/google?code=${encodeURIComponent(authCode)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
             if (role) {
                 url += `&role=${encodeURIComponent(role)}`;
@@ -819,19 +824,19 @@ export const backendApi = {
             });
         },
         getMyRequest: async () => {
-             return backendApiCall('/location-requests/me');
+            return backendApiCall('/location-requests/me');
         },
         getStats: async () => {
-             return backendApiCall('/location-requests/stats');
+            return backendApiCall('/location-requests/stats');
         },
         sendToAdmin: async (city: string) => {
-             return backendApiCall('/location-requests/send-to-admin', {
+            return backendApiCall('/location-requests/send-to-admin', {
                 method: 'POST',
                 body: JSON.stringify({ city }),
             });
         },
         getAdminRequests: async () => {
-             return backendApiCall('/location-requests/admin-requests');
+            return backendApiCall('/location-requests/admin-requests');
         },
     },
 
@@ -1596,7 +1601,7 @@ export const backendApi = {
             });
         },
     },
-    
+
     // KYC endpoints
     kyc: {
         submit: async (formData: FormData) => {
@@ -1668,12 +1673,12 @@ export const backendApi = {
         getById: async (id: string) => {
             return backendApiCall(`/service-providers/${id}`);
         },
-        
-        list: async (params: { 
-            category?: string; 
-            verified?: boolean; 
-            available?: boolean; 
-            location?: string; 
+
+        list: async (params: {
+            category?: string;
+            verified?: boolean;
+            available?: boolean;
+            location?: string;
             sortBy?: string;
             limit?: number;
         } = {}) => {

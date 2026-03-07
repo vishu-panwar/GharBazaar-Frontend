@@ -375,7 +375,10 @@ export const AuthProvider = ({
       }
 
       // Build Google OAuth URL (redirect to Google, not backend)
-      const redirectUri = `${window.location.origin}/auth/google/callback`
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '')
+      const redirectUri = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && appUrl
+        ? `${appUrl}/auth/google/callback`
+        : typeof window !== 'undefined' ? `${window.location.origin}/auth/google/callback` : ''
       const scope = 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile openid'
       const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
         `client_id=${encodeURIComponent(clientId)}` +
