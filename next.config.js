@@ -1,6 +1,4 @@
 /** @type {import('next').NextConfig} */
-const path = require("path");
-
 const nextConfig = {
   reactStrictMode: true,
 
@@ -10,11 +8,18 @@ const nextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     remotePatterns: [
-      { protocol: "https", hostname: "**.amazonaws.com" },
-      { protocol: "https", hostname: "**.googleapis.com" },
-      { protocol: "https", hostname: "res.cloudinary.com" },
-      { protocol: "https", hostname: "**.cloudinary.com" },
-      { protocol: "http", hostname: "localhost" },
+      {
+        protocol: "https",
+        hostname: "**.amazonaws.com",
+      },
+      {
+        protocol: "https",
+        hostname: "**.googleapis.com",
+      },
+      {
+        protocol: "http",
+        hostname: "localhost",
+      },
     ],
   },
 
@@ -24,27 +29,26 @@ const nextConfig = {
       process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY,
   },
 
-  // Ignore TypeScript and ESLint errors during build
+  // Performance optimizations
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production",
+  },
+
+  // Experimental features for better performance
+  experimental: {
+    // optimizeCss: true, // Temporarily disabled due to critters dependency issue
+    // optimizePackageImports: ['lucide-react'],
+  },
+
+  // Ignore TypeScript errors during build to allow deployment
   typescript: {
     ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
   },
 
   // Compression
   compress: true,
 
-  // Webpack alias for @ path resolution
-  webpack: (config) => {
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      "@": path.resolve(__dirname, "src"),
-    };
-    return config;
-  },
-
-  // Headers for caching and security
+  // Headers for better caching and security
   async headers() {
     return [
       {
@@ -59,13 +63,27 @@ const nextConfig = {
       {
         source: "/(.*)",
         headers: [
-          { key: "X-Frame-Options", value: "DENY" },
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "Referrer-Policy", value: "origin-when-cross-origin" },
+          {
+            key: "X-Frame-Options",
+            value: "DENY",
+          },
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+          {
+            key: "Referrer-Policy",
+            value: "origin-when-cross-origin",
+          },
         ],
       },
     ];
   },
+
+  // Output standalone for better deployment
+  // output: "standalone", // Commented out standard standalone for Netlify adapter compatibility if needed, but usually fine.
+  // Netlify plugin handles it. Let's keep it safe or just use standard.
+  output: "standalone",
 };
 
 module.exports = nextConfig;

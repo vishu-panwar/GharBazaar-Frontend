@@ -4,7 +4,6 @@
 import { io, Socket } from 'socket.io-client';
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000';
-const SOCKET_PATH = process.env.NEXT_PUBLIC_SOCKET_PATH || '/socket.io/';
 
 interface SocketGlobal {
   __gharbazaarSocket?: Socket | null;
@@ -45,7 +44,7 @@ export const getOrCreateSocket = (token?: string): Socket => {
       : undefined,
     // Prefer websocket first to avoid local polling/XHR CORS failures.
     transports: ['websocket', 'polling'],
-    path: SOCKET_PATH,
+    path: '/socket.io/',
     // Auth is sent in the socket payload; cookies are not required.
     withCredentials: false,
   });

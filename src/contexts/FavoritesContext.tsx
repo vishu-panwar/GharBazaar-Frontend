@@ -34,7 +34,6 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     const [isLoaded, setIsLoaded] = useState(false)
 
     const loadLocalFavorites = () => {
-        if (typeof window === 'undefined') return
         const stored = localStorage.getItem('gharbazaar_favorites')
         if (!stored) return
 
@@ -61,7 +60,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
                         const dbFavorites = response.properties || []
                         
                         // 2. Sync with localStorage if it's the first time
-                        const stored = typeof window !== 'undefined' ? localStorage.getItem('gharbazaar_favorites') : null
+                        const stored = localStorage.getItem('gharbazaar_favorites')
                         if (stored) {
                             const localFavorites = JSON.parse(stored)
                             if (localFavorites.length > 0) {
@@ -70,9 +69,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
                                 const syncResponse = await backendApi.favorites.sync(localIds)
                                 if (syncResponse.success) {
                                     setFavorites(syncResponse.properties || [])
-                                    if (typeof window !== 'undefined') {
-                                        localStorage.removeItem('gharbazaar_favorites')
-                                    }
+                                    localStorage.removeItem('gharbazaar_favorites')
                                 } else {
                                     setFavorites(dbFavorites)
                                 }
@@ -104,7 +101,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
 
     // Save favorites to localStorage whenever they change (ONLY for guest users now)
     useEffect(() => {
-        if (isLoaded && !user && typeof window !== 'undefined') {
+        if (isLoaded && !user) {
             localStorage.setItem('gharbazaar_favorites', JSON.stringify(favorites))
         }
     }, [favorites, isLoaded, user])

@@ -52,8 +52,8 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
 
     // Load from localStorage on mount
     useEffect(() => {
-        const savedLang = typeof window !== 'undefined' ? localStorage.getItem('userLanguage') as Language : null;
-        const savedCurr = typeof window !== 'undefined' ? localStorage.getItem('userCurrency') as Currency : null;
+        const savedLang = localStorage.getItem('userLanguage') as Language;
+        const savedCurr = localStorage.getItem('userCurrency') as Currency;
 
         if (savedLang) setLanguageState(savedLang);
         if (savedCurr) setCurrencyState(savedCurr);
@@ -61,16 +61,12 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
 
     const setLanguage = (lang: Language) => {
         setLanguageState(lang);
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('userLanguage', lang);
-        }
+        localStorage.setItem('userLanguage', lang);
     };
 
     const setCurrency = (curr: Currency) => {
         setCurrencyState(curr);
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('userCurrency', curr);
-        }
+        localStorage.setItem('userCurrency', curr);
     };
 
     // Translation function

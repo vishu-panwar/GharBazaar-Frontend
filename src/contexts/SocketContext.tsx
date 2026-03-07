@@ -59,17 +59,17 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     const handleSocketError = useCallback((error: any) => {
         console.error('Socket error:', error);
     }, []);
+
     const handleForceLogout = useCallback((data: { userId: string }) => {
         if (currentUserIdRef.current && data.userId === currentUserIdRef.current) {
             console.warn('Force logout triggered by admin');
-            if (typeof window !== 'undefined') {
-                localStorage.removeItem('auth_token');
-                localStorage.removeItem('user');
-                localStorage.removeItem('cached_user');
-                window.location.href = '/login?reason=deleted';
-            }
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('cached_user');
+            window.location.href = '/login?reason=deleted';
         }
     }, []);
+
     useEffect(() => {
         if (!user) {
             disconnectSocket();
@@ -104,10 +104,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
             setSocket(newSocket);
             setConnected(newSocket.connected);
         } catch (error) {
-            console.error('CRITICAL: Failed to initialize socket connection:', error);
-            // Non-blocking failure: App will still render, but real-time features will be disabled.
-            setSocket(null);
-            setConnected(false);
+            console.error('Failed to initialize socket:', error);
         }
 
         return () => {

@@ -38,7 +38,7 @@ export const SellerSubscriptionProvider = ({ children }: { children: ReactNode }
 
     // Load subscription from localStorage on mount
     useEffect(() => {
-        const savedSubscription = typeof window !== 'undefined' ? localStorage.getItem('sellerSubscription') : null
+        const savedSubscription = localStorage.getItem('sellerSubscription')
         if (savedSubscription) {
             try {
                 const parsed = JSON.parse(savedSubscription)
@@ -68,9 +68,7 @@ export const SellerSubscriptionProvider = ({ children }: { children: ReactNode }
             listingsUsed: used,
             expiryDate: expiry?.toISOString() || null
         }
-        if (typeof window !== 'undefined') {
-            localStorage.setItem('sellerSubscription', JSON.stringify(subscriptionData))
-        }
+        localStorage.setItem('sellerSubscription', JSON.stringify(subscriptionData))
     }
 
     const setSubscription = (planId: string) => {
@@ -134,9 +132,7 @@ export const SellerSubscriptionProvider = ({ children }: { children: ReactNode }
         setListingsRemaining(0)
         setListingsUsed(0)
         setExpiryDate(null)
-        if (typeof window !== 'undefined') {
-            localStorage.removeItem('sellerSubscription')
-        }
+        localStorage.removeItem('sellerSubscription')
     }
 
     return (
