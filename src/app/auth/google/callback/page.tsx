@@ -158,13 +158,6 @@ export default function GoogleCallbackPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#0f172a] text-white">
-      <style>{`
-        @keyframes loading {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(200%); }
-        }
-        .loading-bar { animation: loading 1.5s infinite; }
-      `}</style>
       <div className="p-12 rounded-3xl bg-[#1e293b] shadow-2xl border border-slate-700 flex flex-col items-center max-w-sm w-full">
         <div className="relative mb-8">
           <Loader2 className="w-16 h-16 animate-spin text-blue-500" />
@@ -177,9 +170,19 @@ export default function GoogleCallbackPage() {
           We&apos;re fetching your profile details from our secure servers. Please wait a moment.
         </p>
         <div className="w-full mt-10 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-          <div className="loading-bar h-full bg-gradient-to-r from-blue-600 to-cyan-400 w-1/2"></div>
+          <div className="h-full bg-gradient-to-r from-blue-600 to-cyan-400 animate-[loading_1.5s_infinite] w-1/2"></div>
         </div>
       </div>
+      <style jsx>{`
+        @keyframes loading {
+          0% {
+            transform: translateX(-100%);
+          }
+          100% {
+            transform: translateX(200%);
+          }
+        }
+      `}</style>
     </div>
   )
 }
