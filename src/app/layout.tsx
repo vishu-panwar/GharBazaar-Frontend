@@ -10,6 +10,10 @@ import PWARegister from '@/components/PWARegister'
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 const manrope = Manrope({ subsets: ['latin'], variable: '--font-manrope' })
 
+// Force all pages to be server-rendered dynamically.
+// This prevents build-time "useContext outside provider" errors on Hostinger.
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'GharBazaar - Premium Local Real Estate Marketplace',
   description: 'List, browse, and bid on properties across India. Trusted platform for buying, selling, and renting real estate.',
